@@ -24,7 +24,7 @@ func (this *Position) MoveByString(s string) {
 	this.Line += strings.Count(s, "\n")
 	last := strings.LastIndex(s, "\n")
 	if last != -1 {
-		this.Column = 0
+		this.Column = 1
 	}
 	this.Column += utf8.RuneCountInString(s[last+1:])
 }
@@ -63,6 +63,7 @@ func (this *Token) String() string {
 func (this *Scanner) Init(defs []TokenDef, s string) *Scanner {
 	this.input = s
 	this.pos.Line = 1
+	this.pos.Column = 1
 	this.Space = "\t\r\n "
 	for _, def := range defs {
 		this.def = append(this.def, def.Compile())
@@ -91,7 +92,7 @@ func (this *Scanner) find() *Token {
 		}
 		return &Token{Type: r.Type, Value: result, Pos: this.pos}
 	}
-	return &Token{Type: TokenError, Pos: this.pos}
+	return &Token{Type: TokenError, Pos: this.pos, Value: this.input}
 }
 
 func (this *Scanner) Peek() *Token {
