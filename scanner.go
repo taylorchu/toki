@@ -64,7 +64,7 @@ func (this *Scanner) Init(defs []TokenDef, s string) *Scanner {
 	this.input = s
 	this.pos.Line = 1
 	this.pos.Column = 1
-	this.Space = "\s"
+	this.Space = `\s`
 	for _, def := range defs {
 		this.def = append(this.def, def.Compile())
 	}
