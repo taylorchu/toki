@@ -1,8 +1,8 @@
 package main
 
 import (
-	".."
 	"fmt"
+	"github.com/taylorchu/toki"
 )
 
 const (
@@ -14,11 +14,11 @@ const (
 func main() {
 	input := "1  + 2+3 + happy birthday  "
 	fmt.Println("input:", input)
-	s := new(toki.Scanner).Init(
+	s := toki.New(
 		[]toki.TokenDef{
-			{NUMBER, "[0-9]+"},
-			{PLUS, "\\+"},
-			{STRING, "[a-z]+"},
+			{Type: NUMBER, Pattern: "[0-9]+"},
+			{Type: PLUS, Pattern: "\\+"},
+			{Type: STRING, Pattern: "[a-z]+"},
 		}, input)
 	for {
 		t := s.Next()
@@ -30,7 +30,7 @@ func main() {
 			fmt.Println("error", t.Type, t)
 			return
 		}
-		fmt.Println(t.Type, t)
+		fmt.Println(t)
 	}
 
 }

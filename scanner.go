@@ -1,9 +1,8 @@
 package toki
 
 import (
-	//"fmt"
+	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -20,7 +19,7 @@ type Position struct {
 	Column int
 }
 
-func (this *Position) MoveByString(s string) {
+func (this *Position) moveByString(s string) {
 	this.Line += strings.Count(s, "\n")
 	last := strings.LastIndex(s, "\n")
 	if last != -1 {
@@ -31,23 +30,19 @@ func (this *Position) MoveByString(s string) {
 
 type TokenDef struct {
 	Type   TokenType
-	Regexp string
+	Pattern string
+	regexpCompiled  *regexp.Regexp
 }
 
-func (this *TokenDef) Compile() TokenDefRuntime {
-	return TokenDefRuntime{this.Type, regexp.MustCompile("^" + this.Regexp)}
-}
-
-type TokenDefRuntime struct {
-	Type   TokenType
-	Regexp *regexp.Regexp
+func (this *TokenDef) compile() {
+	this.regexpCompiled = regexp.MustCompile("^" + this.Pattern)
 }
 
 type Scanner struct {
 	Space string
 	pos   Position
 	input string
-	def   []TokenDefRuntime
+	def   []TokenDef
 }
 
 type Token struct {
@@ -57,17 +52,19 @@ type Token struct {
 }
 
 func (this *Token) String() string {
-	return "Line: " + strconv.Itoa(this.Pos.Line) + ", Column: " + strconv.Itoa(this.Pos.Column) + ", " + this.Value
+	return fmt.Sprintf("Line: %v, Column: %v, %v", this.Pos.Line, this.Pos.Column, this.Value)
 }
 
-func (this *Scanner) Init(defs []TokenDef, s string) *Scanner {
+func New(defs []TokenDef, s string) *Scanner {
+	this := new(Scanner)
 	this.input = s
 	this.pos.Line = 1
 	this.pos.Column = 1
 	this.Space = `\s`
-	for _, def := range defs {
-		this.def = append(this.def, def.Compile())
+	for i := range defs {
+		defs[i].compile()
 	}
+	this.def = defs
 	return this
 }
 
@@ -77,7 +74,7 @@ func (this *Scanner) skip() {
 		return
 	}
 	this.input = strings.TrimPrefix(this.input, result)
-	this.pos.MoveByString(result)
+	this.pos.moveByString(result)
 }
 
 func (this *Scanner) find() *Token {
@@ -86,7 +83,7 @@ func (this *Scanner) find() *Token {
 		return &Token{Type: TokenEOF, Pos: this.pos}
 	}
 	for _, r := range this.def {
-		result := r.Regexp.FindString(this.input)
+		result := r.regexpCompiled.FindString(this.input)
 		if result == "" {
 			continue
 		}
@@ -105,6 +102,6 @@ func (this *Scanner) Next() *Token {
 		return t
 	}
 	this.input = strings.TrimPrefix(this.input, t.Value)
-	this.pos.MoveByString(t.Value)
+	this.pos.moveByString(t.Value)
 	return t
 }
