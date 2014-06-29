@@ -29,9 +29,9 @@ func (this *Position) moveByString(s string) {
 }
 
 type TokenDef struct {
-	Type   TokenType
-	Pattern string
-	regexpCompiled  *regexp.Regexp
+	Type           TokenType
+	Pattern        string
+	regexpCompiled *regexp.Regexp
 }
 
 func (this *TokenDef) compile() {
@@ -55,17 +55,20 @@ func (this *Token) String() string {
 	return fmt.Sprintf("Line: %v, Column: %v, %v", this.Pos.Line, this.Pos.Column, this.Value)
 }
 
-func New(defs []TokenDef, s string) *Scanner {
+func New(defs []TokenDef) *Scanner {
 	this := new(Scanner)
-	this.input = s
-	this.pos.Line = 1
-	this.pos.Column = 1
 	this.Space = `\s`
 	for i := range defs {
 		defs[i].compile()
 	}
 	this.def = defs
 	return this
+}
+
+func (this *Scanner) SetInput(input string) {
+	this.input = input
+	this.pos.Line = 1
+	this.pos.Column = 1
 }
 
 func (this *Scanner) skip() {

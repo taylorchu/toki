@@ -14,12 +14,12 @@ const (
 func main() {
 	input := "1  + 2+3 + happy birthday  "
 	fmt.Println("input:", input)
-	s := toki.New(
-		[]toki.TokenDef{
+	s := toki.New([]toki.TokenDef{
 			{Type: NUMBER, Pattern: "[0-9]+"},
 			{Type: PLUS, Pattern: "\\+"},
 			{Type: STRING, Pattern: "[a-z]+"},
-		}, input)
+		})
+	s.SetInput(input)
 	for {
 		t := s.Next()
 		if t.Type == toki.TokenEOF {
