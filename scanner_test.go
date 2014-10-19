@@ -34,7 +34,7 @@ func TestScanner(t *testing.T) {
 	for _, e := range expected {
 		r := s.Next()
 		if e != r.Token {
-			t.Fatal("expected %v, got %v", e, r.Token)
+			t.Fatalf("expected %v, got %v", e, r.Token)
 		} else {
 			t.Log(r)
 		}
