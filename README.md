@@ -10,4 +10,3 @@ token definition
 ================
 a token is a pair of constant and regexp string.
 
-see example.

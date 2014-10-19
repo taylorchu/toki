@@ -1,17 +1,17 @@
 package toki
 
 import (
+	"bytes"
 	"fmt"
 	"regexp"
-	"strings"
 	"unicode/utf8"
 )
 
-type TokenType uint32
+type Token uint32
 
 const (
-	TokenEOF TokenType = 1<<32 - 1 - iota
-	TokenError
+	EOF Token = 1<<32 - 1 - iota
+	Error
 )
 
 type Position struct {
@@ -19,92 +19,88 @@ type Position struct {
 	Column int
 }
 
-func (this *Position) moveByString(s string) {
-	this.Line += strings.Count(s, "\n")
-	last := strings.LastIndex(s, "\n")
+func (this *Position) move(s []byte) {
+	this.Line += bytes.Count(s, []byte{'\n'})
+	last := bytes.LastIndex(s, []byte{'\n'})
 	if last != -1 {
 		this.Column = 1
 	}
-	this.Column += utf8.RuneCountInString(s[last+1:])
+	this.Column += utf8.RuneCount(s[last+1:])
 }
 
-type TokenDef struct {
-	Type           TokenType
-	Pattern        string
-	regexpCompiled *regexp.Regexp
-}
-
-func (this *TokenDef) compile() {
-	this.regexpCompiled = regexp.MustCompile("^" + this.Pattern)
+type Def struct {
+	Token   Token
+	Pattern string
+	regexp  *regexp.Regexp
 }
 
 type Scanner struct {
-	Space string
+	space *regexp.Regexp
 	pos   Position
-	input string
-	def   []TokenDef
+	input []byte
+	def   []Def
 }
 
-type Token struct {
-	Type  TokenType
-	Value string
+type Result struct {
+	Token Token
+	Value []byte
 	Pos   Position
 }
 
-func (this *Token) String() string {
-	return fmt.Sprintf("Line: %v, Column: %v, %v", this.Pos.Line, this.Pos.Column, this.Value)
+func (this *Result) String() string {
+	return fmt.Sprintf("Line: %d, Column: %d, %s", this.Pos.Line, this.Pos.Column, this.Value)
 }
 
-func New(defs []TokenDef) *Scanner {
-	this := new(Scanner)
-	this.Space = `\s`
-	for i := range defs {
-		defs[i].compile()
+func NewScanner(def []Def) *Scanner {
+	for i := range def {
+		def[i].regexp = regexp.MustCompile("^" + def[i].Pattern)
 	}
-	this.def = defs
-	return this
+	return &Scanner{
+		space: regexp.MustCompile(`^\s+`),
+		def:   def,
+	}
 }
 
 func (this *Scanner) SetInput(input string) {
-	this.input = input
+	this.input = []byte(input)
 	this.pos.Line = 1
 	this.pos.Column = 1
 }
 
 func (this *Scanner) skip() {
-	result := regexp.MustCompile("^[" + this.Space + "]+").FindString(this.input)
-	if result == "" {
+	result := this.space.Find(this.input)
+	if result == nil {
 		return
 	}
-	this.input = strings.TrimPrefix(this.input, result)
-	this.pos.moveByString(result)
+	this.pos.move(result)
+	this.input = bytes.TrimPrefix(this.input, result)
 }
 
-func (this *Scanner) find() *Token {
+func (this *Scanner) scan() *Result {
 	this.skip()
 	if len(this.input) == 0 {
-		return &Token{Type: TokenEOF, Pos: this.pos}
+		return &Result{Token: EOF, Pos: this.pos}
 	}
 	for _, r := range this.def {
-		result := r.regexpCompiled.FindString(this.input)
-		if result == "" {
+		result := r.regexp.Find(this.input)
+		if result == nil {
 			continue
 		}
-		return &Token{Type: r.Type, Value: result, Pos: this.pos}
+		return &Result{Token: r.Token, Value: result, Pos: this.pos}
 	}
-	return &Token{Type: TokenError, Pos: this.pos, Value: this.input}
+	return &Result{Token: Error, Pos: this.pos}
 }
 
-func (this *Scanner) Peek() *Token {
-	return this.find()
+func (this *Scanner) Peek() *Result {
+	return this.scan()
 }
 
-func (this *Scanner) Next() *Token {
-	t := this.find()
-	if t.Type == TokenError || t.Type == TokenEOF {
+func (this *Scanner) Next() *Result {
+	t := this.scan()
+	if t.Token == Error || t.Token == EOF {
 		return t
 	}
-	this.input = strings.TrimPrefix(this.input, t.Value)
-	this.pos.moveByString(t.Value)
+	this.input = bytes.TrimPrefix(this.input, t.Value)
+	this.pos.move(t.Value)
 	return t
 }
